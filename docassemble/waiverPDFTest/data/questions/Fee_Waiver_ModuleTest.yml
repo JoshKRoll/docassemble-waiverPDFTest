@@ -1,0 +1,849 @@
+features:
+  progress bar: True
+  hide navbar: True
+---
+objects:
+  - user: Individual
+  - otherparty: Individual
+  - incomesources: DAList.using(ask_number=True, object_type=Thing)
+  - householdmembers: DAList.using(ask_number=True, object_type=Individual)
+  - deductions: DAList.using(ask_number=True, object_type=Thing)
+  - installmentpayments: DAList.using(ask_number=True, object_type=Thing)
+  - othermonthlyexpenses: DAList.using(ask_number=True, object_type=Thing)
+---
+mandatory: true
+code: |
+  welcome_1
+  welcome_2
+  user.name.first
+  petitioner
+  otherparty.name.first
+  user.phone
+  public_assistance
+  if public_assistance:
+    prior_feewaiver
+    court_name
+    nextsteps1
+    nextsteps2
+    nextsteps3
+    
+  else:
+    monthly_income_changes
+    incomesources.there_are_any
+    incomesources.gather()
+    householdmembers.there_are_any
+    householdmembers.gather()
+    gross_monthly_income
+    
+    if gross_monthly_income == False:
+      waive_all_fees
+      has_cash
+      if user.employed:
+        deductions.there_are_any
+        deductions.gather()
+      rent
+      installmentpayments.there_are_any
+      installmentpayments.gather()
+      othermonthlyexpenses.there_are_any
+      othermonthlyexpenses.gather()
+      totalexpenses
+  prior_feewaiver
+  court_name
+  nextsteps1
+  nextsteps2
+  nextsteps3
+---
+question: |
+  Welcome to U Do It Legal's **Request to Waive Court Fees** Module
+subquestion: |
+  The fee to file a Family Law Petition or Response in California is $435 ($450 in San Fransisco County). 
+  
+  If you do not have enough income to pay for your household's basic needs *and* the court fees, you may ask the court to do one or more of the following:
+  
+  - Waive all court fees and costs
+  - Waive some of the court fees
+  - Let you make payments over time
+  
+  Please note that although anyone may file a request to waive court fees, there is no guarantee that the Judicial Officer in your case will grant your fee waiver application.
+continue button field: welcome_1
+---
+question: |
+  Welcome to U Do It Legal's **Request to Waive Court Fees** Module
+subquestion: |
+  This website can help you complete and download your court forms in 3 steps:
+
+  **Step 1.** Answer questions that will fill in your forms for you.
+  
+  **Step 2.** Preview the completed forms.
+  
+  **Step 3.** Email the forms to yourself or download them so you can send the forms to the court or keep them as part of your safety plan.
+  
+  This website will automatically save your work. However, please note that if you press 'back' to return to a previous page, the current page will not be saved. To avoid this, please carefully review your answers before proceeding to the next page. 
+  
+  Please press 'Continue' to start answering questions.
+continue button field: welcome_2
+---
+question: |
+  **Your Information** 
+subquestion: |
+  Are you the Petitioner in this case? 
+yesno: petitioner
+help: |
+  The Petitioner is the first party to initiate the case (file your papers) with the court. The Petitioner files the Petition. His or her spouse/partner is the Respondent. They file the Response. There is no advantage or disadvantage to being the Petitioner versus the Respondent.
+---
+question: |
+  **Your Information** 
+subquestion: |
+  What is your name?
+fields:
+  - First name: user.name.first
+  - Middle name: user.name.middle
+    required: False 
+  - Last name: user.name.last   
+---
+question: |
+  % if petitioner:
+    **Respondent's Information**
+  % else:
+    **Petitioner's Information**
+  % endif
+subquestion: |
+  % if petitioner:
+    You indicated that you are the Petitioner in this case. What is the Respondent's (aka, the other party's) full name?
+  % else:
+    You indicated that you are the Respondent in this case. What is the Petitioner's (aka, the other party's) full name?
+  % endif
+fields: 
+  - First name: otherparty.name.first
+  - Middle Name: otherparty.name.middle
+    required: false
+  - Last Name: otherparty.name.last
+---
+question: |
+  **Your Information** 
+subquestion: |
+  Fill in your personal information
+fields:
+  - What is your phone number?: user.phone
+    help: |
+      You may use the following format: ###-###-####
+    required: false
+  - note: |
+      **Address Inofrmation**
+      
+      Fill in the mailing address you would like to use on your court forms. *You do not have to use your home address. You may opt to use a P.O. Box or the address of a friend or family member, as you just need to use an address that you can access and receive mail at throughout the duration of the case.*
+  - Street address: user.address.street  
+  - City: user.address.city
+  - State: user.address.state
+  - Zip: user.address.zip
+  - note: |
+      **Employment Information**
+      
+      Fill in your employment information below.
+  - Are you currently employed?: user.employed
+    datatype: yesnoradio
+  - Job Title: user.job_title
+    hide if: 
+      variable: user.employed 
+      is: False
+  - Name of Employer: user.employer_name
+    hide if: 
+      variable: user.employed 
+      is: False
+  - Employer's Address: user.employer_address
+    hide if: 
+      variable: user.employed 
+      is: False
+---
+question: |
+  **Fee Waiver Elligibility** 
+subquestion: |
+  The following questions will determine whether or not you may qualify to receive a fee waiver.
+under: |
+  **Acronym Definitions:**
+  
+  **Supp. Sec. Inc.** = Supplemental Security Income (SSI), a Federal income supplement program that provides cash to aged, blind, and disabled people who have little or no income, to help them meet their basic needs for food, clothing, and shelter.
+  
+  **SSP** = State Supplementary Payment, the state program which augments SSI.
+  
+  **IHSS** = In-Home Supportive Services Program, which helps pay for services provided to individuals over 65 years of age, or disabled, or blind, so that they may stay in their own homes.
+  
+  **CalWORKS** = California Work Opportunity and Responsibility to Kids, a public assistance program that provides cash aid and services to eligible families that have a child or children in the home.
+  
+  **Tribal TANF** = California Tribal Temporary Assistance for Needy Families Program, an assistance program for American Indians and Alaska Natives which provides cash aid and supportive services to eligible needy children and families.
+  
+  **CAPI** = Cash Assistance Program for Immigrants, a program that provides monthly cash benefits to aged, blind, and disabled non-citizens who are ineligible for SSI/SSP solely due to their immigrant status.
+fields: 
+  - Do you currently receive public assistance?: public_assistance
+    datatype: yesnoradio
+  - note: 
+      "If you currently receive any of the following forms of public assistance, you automatically qualify for a fee waiver. **Please select each type of public assistance you are currently receiving:**"
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - Food Stamps: food_stamps
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - Supplemental Security Income (SSI): SSI
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - State Supplementary Payment (SSP): SSP
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - Medi-Cal: MediCal
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - County Relief/General Assistance: county_relief
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - In-Home Supportive Services Program (IHSS): IHSS
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - CalWORKS or Tribal TANF: CalWorks
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+  - Cash Assistance Program for Immigrants (CAPI): CAPI
+    datatype: yesnowide
+    hide if: 
+      variable: public_assistance 
+      is: False
+---
+question: |
+  **Your Gross Monthly Income**
+subquestion: |
+  Does your income change a lot from month to month?
+under: |
+  *If it does, complete the next sections based on your average income for the past 12 months*
+yesno: monthly_income_changes
+---
+question: |
+  **Your Gross Monthly Income**
+subquestion: |
+  The next page will ask you to fill in information about your sources of income.
+under: |  
+  **Income sources may include:** 
+  
+  Wages or other income from work (before deductions), spousal/child support payments (that you receive), retirement, social security, disability, unemployment, military basic allowance for quarters (BAQ), veterans payments, dividends, interest, trust income, annuities, net business or rental income, reimbursement for job-related expenses, gambling or lottery winnings, etc.
+fields:
+  - Do you currently receive one or more sources of income?: incomesources.there_are_any
+    datatype: yesnoradio
+  - How many sources of income do you currently receive?: incomesources.target_number
+    datatype: integer
+    max: 4
+    show if: incomesources.there_are_any
+---  
+question: |
+  **Your Gross Monthly Income**
+subquestion: |
+  Tell us about your **${ordinal(i)}** source of income.  
+under: |  
+  **Income sources may include:** 
+  
+  Wages or other income from work (before deductions), spousal/child support payments (that you receive), retirement, social security, disability, unemployment, military basic allowance for quarters (BAQ), veterans payments, dividends, interest, trust income, annuities, net business or rental income, reimbursement for job-related expenses, gambling or lottery winnings, etc.
+fields: 
+  - Income Source: incomesources[i].name.text
+  - Gross Monthly Amount: incomesources[i].amount
+    datatype: currency
+    help: |
+      *Gross monthly amount = The amount you earn before taxes*
+---
+question: |
+  **Your Household Members**
+fields: 
+  - Do any other people live in your household?: householdmembers.there_are_any
+    datatype: yesnoradio
+  - Not including yourself, how many people live in your household?: householdmembers.target_number
+    datatype: integer
+    show if: householdmembers.there_are_any
+    help: |
+      This may include roommates, romantic partners, family members such as children and elderly parents, etc. 
+---
+question: |
+  **Your Household Members:** Tell us about your **${ordinal(i)}** household member.
+fields: 
+  - First name: householdmembers[i].name.first
+  - Middle name: householdmembers[i].name.middle
+    required: false
+  - Last name: householdmembers[i].name.last
+  - Age: householdmembers[i].age
+    datatype: integer
+  - How is this person related to you? (*i.e. this person is my ____*): householdmembers[i].relationship
+  - What is this person's gross monthly income?: householdmembers[i].income
+    datatype: currency 
+    help: |
+      Include any public assistance received, if applicable. If this household member does not have an income, you may write '0'
+---
+mandatory: true
+code: |
+  total_monthly_income = sum(item.amount for item in incomesources)
+  
+  householdmembers_total_income = sum(item.income for item in householdmembers)
+ 
+  family_size = householdmembers.target_number + 1
+
+  gross_monthly_household_income = total_monthly_income + householdmembers_total_income
+---  
+code: |
+  total_deductions = sum(item.amount for item in deductions)
+
+  total_othermonthlyexpenses = sum(item.amount for item in othermonthlyexpenses)
+  
+  total_installmentpayments = sum(item.amount for item in installmentpayments)
+  
+  total_monthly_expenses = rent + food + utilities + clothing + laundry + medical_and_dental + insurance + school + support + transportation + wage_garnishment + total_deductions + total_othermonthlyexpenses + total_installmentpayments
+---
+question: |
+  **Your Family Size vs. Gross Monthly Household Income**
+subquestion: |
+  Your **Family Size** is **${ family_size }**
+ 
+  Your **Gross Monthly Household Income (GMHI)** (i.e. the sum of your and all your household members' incomes) is **$${ gross_monthly_household_income }**
+ 
+  If your gross monthly household income is less than the amount listed next to your family size in the table below, you may automatically qualify to have your court fees waived.
+  
+  Family Size  | GMHI Threshhold
+  -------------|--------------
+  1            | $1,264.59
+  2            | $1,714.59
+  3            | $2,164.59
+  4            | $2,614.59
+  5            | $3,064.59
+  6            | $3,514.59
+  *If more than 6 people at home, add $450.00 for each extra person*
+under: |
+  *Please note that even if your household income exceeds the threshhold above, you may still qualify to have all or part of your court fees waived if you do not have enough income to pay for **both** your household's basic needs and the court fees.* 
+  
+  *If this is the case, you will be asked about your expenses on the following pages.*
+fields:
+  - Is your gross monthly household income **less than** the amount listed above for your family size?: gross_monthly_income
+    datatype: yesnoradio
+    label above field: True
+---
+question: |
+  **Specify Your Request to Waive Court Fees**
+subquestion: |
+  Because: 
+  
+  (1) You do not currently receive any form of public assistance, and
+  
+  (2) Your household income exceeds the maximum amount elligible for automatic acceptance of your fee waiver request,
+  
+  you will have to prove to the court that you do not have enough income to pay for both your household’s basic needs *and* the court fees. 
+  
+  **Please indicate which of the following you would like to request of the court:**
+fields: 
+  - Waive all court fees and costs: waive_all_fees 
+    datatype: yesnowide
+  - Waive some of the court fees: waive_some_fees
+    datatype: yesnowide
+  - Let me make payments over time: payments_over_time
+    datatype: yesnowide 
+---
+question: |
+  **Your Money and Property**
+fields: 
+  - note: "**Cash**"
+  - What is the total amount of cash you currently have?: has_cash
+    datatype: currency
+  
+  - note: "**Financial Accounts**"
+  - Do you have any financial/bank accounts?: has_financialaccounts
+    datatype: yesnoradio
+  - note: "Please fill in the following information regarding your **first** financial account:"
+    show if: has_financialaccounts
+  - Bank Name: financialaccount1_bank
+    show if: has_financialaccounts
+  - Amount: financialaccount1_amount
+    datatype: currency
+    show if: has_financialaccounts
+    
+  - Do you have another financial account?: has_more_financialaccounts
+    datatype: yesnoradio
+    show if: has_financialaccounts
+  - note: "Please fill in the following information regarding your **second** financial account:"
+    show if: has_more_financialaccounts
+  - Bank Name: financialaccount2_bank
+    show if: has_more_financialaccounts
+  - Amount: financialaccount2_amount
+    datatype: currency
+    show if: has_more_financialaccounts
+  
+  - note: "**Vehicles**"
+  - Do you own any cars, boats, or other vehicles?: has_vehicle
+    datatype: yesnoradio
+  - note: 
+      "Please fill in the following information regarding your **first** vehicle"
+    show if: has_vehicle
+  - Make and Year: vehicle1_make
+    show if: has_vehicle
+  - Fair Market Vaue: vehicle1_value
+    datatype: currency
+    show if: has_vehicle
+  - How Much You Still Owe: vehicle1_debt
+    datatype: currency
+    show if: has_vehicle
+  
+  - Do you own another car, boat, or vehicle?: has_another_vehicle
+    datatype: yesnoradio
+    show if: has_vehicle
+  - note: 
+      "Please fill in the following information regarding your **second** vehicle"
+    show if: has_another_vehicle
+  - Make and Year: vehicle2_make
+    show if: has_another_vehicle
+  - Fair Market Vaue: vehicle2_value
+    datatype: currency
+    show if: has_another_vehicle
+  - How Much You Still Owe: vehicle2_debt
+    datatype: currency
+    show if: has_another_vehicle
+  
+  - Do you own a third car, boat, or vehicle?: has_third_vehicle
+    datatype: yesnoradio
+    show if: has_another_vehicle
+  - note: 
+      "Please fill in the following information regarding your **third** vehicle"
+    show if: has_third_vehicle
+  - Make and Year: vehicle3_make
+    show if: has_third_vehicle
+  - Fair Market Vaue: vehicle3_value
+    datatype: currency
+    show if: has_third_vehicle
+  - How Much You Still Owe: vehicle3_debt
+    datatype: currency
+    show if: has_third_vehicle
+  
+  - note: "**Real Estate**"
+  - Do you own any real estate?: has_realestate
+    datatype: yesnoradio
+  - note: "Please fill in the following information regarding your **first** property:"
+    show if: has_realestate
+  - Address: realestate1_address
+    show if: has_realestate
+  - Fair Market Value: realestate1_value
+    datatype: currency
+    show if: has_realestate
+  - How Much You Still Owe: realestate1_debt
+    datatype: currency
+    show if: has_realestate
+    
+  - Do you own another property?: has_more_realestate
+    datatype: yesnoradio
+    show if: has_realestate
+  - note: "Please fill in the following information regarding your **second** property:"
+    show if: has_more_realestate
+  - Address: realestate2_address
+    show if: has_more_realestate
+  - Fair Market Value: realestate2_value
+    datatype: currency
+    show if: has_more_realestate
+  - How Much You Still Owe: realestate2_debt
+    datatype: currency
+    show if: has_more_realestate
+    
+  - note: "**Other Personal Property**"
+  - Do you have any other personal property (jewelry, furniture, furs, stocks, bonds, etc.) worth at least $500?: has_other_property
+    datatype: yesnoradio
+  - note: "Please fill in the following information regarding your **first** piece of personal property:"
+    show if: has_other_property
+  - Type: personalprop1_type
+    show if: has_other_property
+  - Fair Market Value: personalprop1_value
+    datatype: currency
+    show if: has_other_property 
+  - How Much You Still Owe: personalprop1_debt
+    datatype: currency
+    show if: has_other_property
+    
+  - Do you have another piece of personal property (jewelry, furniture, furs, stocks, bonds, etc.) worth at least $500?: has_more_property
+    datatype: yesnoradio
+    show if: has_other_property
+  - note: "Please fill in the following information regarding your **second** piece of personal property:"
+    show if: has_more_property
+  - Type: personalprop2_type
+    show if: has_more_property
+  - Fair Market Value: personalprop2_value
+    datatype: currency
+    show if: has_more_property 
+  - How Much You Still Owe: personalprop2_debt
+    datatype: currency
+    show if: has_more_property
+---
+question: |
+  Your Deduction and Expense Information
+fields: 
+  - "Are any deductions taken out of your paycheck?": deductions.there_are_any
+    datatype: yesnoradio
+    label above field: True
+  - How many deductions are taken out of your paycheck? (You may include up to 4): deductions.target_number
+    datatype: integer
+    min: 1
+    max: 4
+    show if: deductions.there_are_any
+---
+question: |
+  **Your Deduction and Expense Information**
+subquestion: |
+  Tell us about your **${ordinal(i)}** payroll deduction.
+fields:
+  - For: deductions[i].name.text
+  - Monthly Amount: deductions[i].amount
+    datatype: currency 
+---    
+question: |
+  **Your Deduction and Expense Information**
+subquestion: |
+  Fill in the average monthly amounts that you spend on each of the following expenses. If you do not spend any money on a particular expense, you may write '0'.
+  
+  If you only make certain purchases a few times a year, total the amount you would typically spend in a year and divide it by 12 to get an average monthly amount. *For example, if you spend $120 on school supplies every fall for your child, divide that by 12 to get an average monthly expense of $10.* 
+  
+  Make sure you list everything that you can here. *Do you donate to your church every weekend? Do you have to pay for any sports your children play? Do you have to pay to park your car in a lot or garage?* 
+fields: 
+  - Rent (or House Payment) & Maintenance: rent
+    datatype: currency
+  - Food and Household Supplies: food
+    datatype: currency
+  - Utilities and Telephone: utilities
+    datatype: currency
+  - Clothing: clothing
+    datatype: currency
+  - Laundry and Cleaning: laundry
+    datatype: currency
+  - Medical and Dental Expenses: medical_and_dental
+    datatype: currency
+  - Insurance (life, health, accident, etc.): insurance
+    datatype: currency
+  - School, Child Care: school
+    datatype: currency
+  - Child and/or Spousal Support (another marriage): support
+    datatype: currency
+  - Transportation, Gas, Auto-Repair, and Insurance: transportation
+    datatype: currency
+  - Wages/Earnings Withheld by Court Order: wage_garnishment
+    datatype: currency
+---
+question: |
+  **Your Deduction and Expense Information**
+under: |
+  *These can be monthly payments like credit card bills, gym memberships, streaming service subscriptions, student loans, etc.*
+fields: 
+  - Do you have any installment payments and/or debts that you pay each month that you did not list on the prior page?: installmentpayments.there_are_any
+    datatype: yesnoradio
+    label above field: True
+  - How many installment payments do you pay each month? (You may include up to 3): installmentpayments.target_number
+    datatype: integer
+    max: 3
+    show if: installmentpayments.there_are_any
+---
+question: |
+  **Your Deduction and Expense Information**
+subquestion: |
+  Tell us about your **${ordinal(i)}** installment payment.
+fields:
+  - For: installmentpayments[i].name.text
+  - Monthly Amount: installmentpayments[i].amount
+    datatype: currency 
+---
+question: |
+  **Your Deduction and Expense Information**
+fields: 
+  - Do you have any other monthly expenses that you did not list on the prior pages?: othermonthlyexpenses.there_are_any
+    datatype: yesnoradio
+    label above field: True
+  - How many additional payments do you make each month? (You may include up to 3): othermonthlyexpenses.target_number
+    datatype: integer
+    max: 3
+    show if: othermonthlyexpenses.there_are_any
+---
+question: |
+  **Your Deduction and Expense Information**
+subquestion: |
+  Tell us about your **${ordinal(i)}** additional monthly expense.
+fields:
+  - Paid to: othermonthlyexpenses[i].name.text
+  - Monthly Amount: othermonthlyexpenses[i].amount
+    datatype: currency 
+---
+question: |
+  **Your Deduction and Expense Information**
+subquestion: |
+  Based on your answers to our deduction and expense information questions, your estimated **Total Monthly Expenses = $${total_monthly_expenses}**
+  
+  If this is not accurate and complete information, please press 'Back' in the top left corner to correct your answers. 
+continue button field: totalexpenses
+---
+question: |
+  **Your Case Information:** Prior Requests to Waive Court Fees
+fields: 
+  - Have you asked the court to waive your court fees for this case in the last six months?: prior_feewaiver
+    datatype: yesnoradio
+    label above field: True
+  - Case Number: case_number
+    show if: prior_feewaiver
+  - Date of previous order: previous_feewaiver_date
+    datatype: date
+    show if: prior_feewaiver
+  - Do you have a copy of your previous request?: prior_feewaiver_copy
+    datatype: yesnoradio
+    show if: prior_feewaiver
+---
+question: |
+  **Your Case Information:** Identify your Court
+subquestion: |
+  Please fill in the following information about the Court in which you will be filing your paperwork. If you do not know which court you should file in, please find your court [here](https://www.courts.ca.gov/find-my-court.htm). If you live in Los Angeles County, please find your court [here](http://www.lacourt.org/filinglocatornet/ui/filingsearch.aspx).
+fields: 
+  - Court name: court_name
+  - County: court_county
+  - note: |
+      Please fill in the court's address below
+  - Street: courtstreetaddress_street 
+  - City: courtstreetaddress_city
+  - Zip code: courtstreetaddress_zip
+---
+question: |
+  **Next Steps:** What to expect if your fee waiver is granted
+subquestion: |
+  If you file a Request to Waive Court Fees (Form FW-001) and your request is granted, you will not have to pay fees for:
+   
+  - Filing papers in superior court;
+  - Making and certifying copies;
+  - Having the sheriff give notice;
+  - Having a court hearing by telephone;
+  - Giving notice and certificates;
+  - Sending papers to another court department;
+  - Having a court reporter; or
+  - Preparing, copying, and certifying a clerk’s transcript on appeal and transmitting it to the appellate court and the party.
+  
+continue button field: nextsteps1
+---
+question: |
+  **Next Steps:** What to expect if your fee waiver is denied without a hearing
+subquestion: |
+  Your fee waiver application may be denied without a hearing for 1 of 2 reasons:
+
+  - It is incomplete; or
+  - From your application, the court decided you are not eligible for the fee waiver.
+ 
+  The judge will check the reason for denying your request on page 2 of Form FW-003.
+
+  If your fee waiver is denied without a hearing, you have 10 days from the date in the Clerk's Certificate of Service (at the bottom of page 2 of Form FW-003 or attached to that form) to:
+
+  - Pay your fees;
+  - File a new request if the court found that your request was incomplete; OR
+  - Ask for a hearing to show the court more information.
+
+  **If you do not do 1 of these 3 things, the court will cancel the papers you filed with your fee waiver request and you can miss important deadlines or have to start your case all over.**
+
+continue button field: nextsteps2
+---
+question: |
+  **Next Steps:** What to expect if your fee waiver is denied without a hearing
+subquestion: |
+  If your fee waiver is denied, you may still request a hearing to provide the Judicial Officer with more evidence of your absolute inability to pay the court's fees.
+  
+  For more information on how to ask for a court hearing to bring more information after your fee waiver request is denied, please visit the [CA Court Website](https://www.courts.ca.gov/selfhelp-feewaiver.htm?rdeLocaleAttr=en).
+continue button field: nextsteps3
+---
+mandatory: true
+question: |
+  Here is your PDF form
+attachments:
+  - name: "FW-001, Request to Waive Court Fees"
+    filename: FW-001, Request to Waive Court Fees
+    pdf template file: FW-001_Request_to_Waive_Court_Fees.pdf
+    skip undefined: true
+    valid formats:
+      - pdf
+    fields:
+      - County: "${court_county}"
+      - Court Name: "${court_name}"
+      - Court Street Address: "${ courtstreetaddress_street }"
+      - Court City State and Zip Address: |
+          ${ courtstreetaddress_city }, CA ${courtstreetaddress_zip} 
+      - Name: "${user.name}"
+      - Street: "${user.address.street}"
+      - City: "${user.address.city}"
+      - State: "${user.address.state}"
+      - Zip: "${user.address.zip}"
+      - Phone: "${user.phone}"
+      - Case Number: "${case_number}"
+      - Job Title: "${user.job_title}"
+      - Employer Name: "${user.employer_name}"
+      - Employer Address: "${user.employer_address}"
+      - Case Name: |
+          % if petitioner:
+            ${user.name.last}, ${user.name.first} ${user.name.middle} v. ${otherparty.name.last}, ${otherparty.name.first} ${otherparty.name.middle}
+          % else:
+            ${otherparty.name.last}, ${otherparty.name.first} ${otherparty.name.middle} v. ${user.name.last}, ${user.name.first} ${user.name.middle}
+          % endif
+      - In Pro Per or Se: |
+          % if petitioner:
+            In Pro Per
+          % else:
+            In Pro Se
+          % endif
+      - Waive Superior Court Fees: Yes
+      - Receives public assistance: "${public_assistance}"
+      - Receives food stamps: "${food_stamps}"
+      - Receives SSI: "${SSI}"
+      - Receives SSP: "${SSP}"
+      - Receives County Relief: "${county_relief}"
+      - Receives IHSS: "${IHSS}"
+      - Receives CalWORKS or Tribal TANF: "${CalWorks}"
+      - Receives CAPI: "${CAPI}"
+      - Receives MediCal: "${MediCal}"
+      - Gross Monthly Household Income: "${gross_monthly_income}"
+      - Basic Needs: "${ not gross_monthly_income }"
+      - waive all court fees and costs: "${waive_all_fees}"
+      - waive some of the court fees: "${waive_some_fees}"
+      - let me make payments over time: "${payments_over_time}"
+      
+      - Last 6 Months: "${prior_feewaiver}"
+      - All info is true and correct: Yes
+      - Date 1: "${}"
+      - Name 2: "${user.name}"
+      - Name 3: "${user.name}"
+      - Case Number 2: "${case_number}"
+      - Monthly income changes: "${monthly_income_changes}"
+      - Cash: "${has_cash}"
+      - Financial Account 1: "${financialaccount1_bank}"
+      - FA 1 Amount: "${financialaccount1_amount}"
+      - Financial Account 2: "${financialaccount2_bank}"
+      - FA 2 Amount: "${financialaccount2_amount}"
+      - Financial Account 3: "${}"
+      - FA 3 Amount: "${}"
+      - Vehicle 1 Make: "${vehicle1_make}"
+      - Vehicle 1 Value: "${vehicle1_value}"
+      - Vehicle 1 Debt: "${vehicle1_debt}"
+      - Vehicle 2 Make: "${vehicle2_make}"
+      - Vehicle 2 Value: "${vehicle2_value}"
+      - Vehicle 2 Debt: "${vehicle2_debt}"
+      - Income Source 1: "${incomesources.item(0).name.text}"
+      - Income 1 amount: "${incomesources.item(0).amount}"
+      - Vehicle 3 Make: "${vehicle3_make}"
+      - Vehicle 3 Value: "${vehicle3_value}"
+      - Vehicle 3 Debt: "${vehicle3_debt}"
+      - Income Source 2: "${incomesources.item(1).name.text}"
+      - Income 2 amount: "${incomesources.item(1).amount}"
+      - Income Source 3: "${incomesources.item(2).name.text}"
+      - Income 3 amount: "${incomesources.item(2).amount}"
+      - Income Source 4: "${incomesources.item(3).name.text}"
+      - Income 4 amount: "${incomesources.item(3).amount}"
+      - Real Estate 1 Address: "${realestate1_address}"
+      - Real Estate 1 Value: "${realestate1_value}"
+      - Real Estate 1 Debt: "${realestate1_debt}"
+      - Real Estate 2 Address: "${realestate2_address}"
+      - Real Estate 2 Value: "${realestate2_value}"
+      - Real Estate 2 Debt: "${realestate2_debt}"
+      - Total income amount: "${total_monthly_income}"
+      - Personal Property 1: "${personalprop1_type}"
+      - Personal Property 1 Value: "${personalprop1_value}"
+      - Personal Property 1 Debt: "${personalprop1_debt}"
+      - Personal Property 2: "${personalprop2_type}"
+      - Personal Property 2 Value: "${personalprop2_value}"
+      - Personal Property 2 Debt: "${personalprop2_debt}"
+      - HM 1 Age: "${householdmembers.item(0).age}"
+      - Household member 1: "${householdmembers.item(0).name}"
+      - HM 1 Relationship: "${householdmembers.item(0).relationship}"
+      - HM 1 Income: "${householdmembers.item(0).income}"
+      - Household Member 2: "${householdmembers.item(1).name}"
+      - HM 2 Relationship: "${householdmembers.item(1).relationship}"
+      - HM 2 Income: "${householdmembers.item(1).income}"
+      - HM 2 Age: "${householdmembers.item(1).age}"
+      - HM 3 Age: "${householdmembers.item(2).age}"
+      - Household Member 3: "${householdmembers.item(2).name}"
+      - HM 3 Relationship: "${householdmembers.item(2).relationship}"
+      - HM 3 Income: "${householdmembers.item(2).income}"
+      - Deduction 1: "${deductions.item(0).name.text}"
+      - Deduction 1 Amount: "${deductions.item(0).amount}"
+      - HM 4 Age: "${householdmembers.item(3).age}"
+      - Household Member 4: "${householdmembers.item(3).name}"
+      - HM 4 Relationship: "${householdmembers.item(3).relationship}"
+      - HM 4 Income: "${householdmembers.item(3).income}"
+      - Deduction 2: "${deductions.item(1).name.text}"
+      - Deduction 2 Amount: "${deductions.item(1).amount}"
+      - Deduction 3: "${deductions.item(2).name.text}"
+      - Deduction 3 Amount: "${deductions.item(2).amount}"
+      - Total HM Income: "${householdmembers_total_income}"
+      - Deduction 4: "${deductions.item(3).name.text}"
+      - Deduction 4 Amount: "${deductions.item(3).amount}"
+      - Rent: "${rent}"
+      - Total monthly and household income: "${gross_monthly_household_income}"
+      - Food and Supplies: "${food}"
+      - Utilities and Phone: "${utilities}"
+      - Clothing: "${clothing}"
+      - Laundry and Cleaning: "${laundry}"
+      - Medical and Dental: "${medical_and_dental}"
+      - Insurance: "${insurance}"
+      - School and child care: "${school}"
+      - Support Payments: "${support}"
+      - Transportation: "${transportation}"
+      - Installment Payment 1 Amount: "${installmentpayments.item(0).amount}"
+      - Installment Payment 1: "${installmentpayments.item(0).name.text}"
+      - Installment Payment 2: "${installmentpayments.item(1).name.text}"
+      - Installment Payment 2 Amount: "${installmentpayments.item(1).amount}"
+      - Installment Payment 3: "${installmentpayments.item(2).name.text}"
+      - Installment Payment 3 Amount: "${installmentpayments.item(2).amount}"
+      - Wage Garnishment: "${wage_garnishment}"
+      - Other Monthly Expense 1: "${othermonthlyexpenses.item(0).name.text}"
+      - Other Monthly Expense 1 Amount: "${othermonthlyexpenses.item(0).amount}"
+      - Check here if you attach another page: "${}"
+      - Other Monthly Expense 2: "${othermonthlyexpenses.item(1).name.text}"
+      - Other Monthly Expense 2 Amount: "${othermonthlyexpenses.item(1).amount}"
+      - Other Monthly Expense 3: "${othermonthlyexpenses.item(2).name.text}"
+      - Other Monthly Expense 3 Amount: "${othermonthlyexpenses.item(2).amount}"
+      - Total Monthly Expenses: "${total_monthly_expenses}"
+
+  - name: "FW-003 Order on Court Fee Waiver"
+    filename: FW-003, Order on Court Fee Waiver
+    pdf template file: FW-003_Order_on_Court_Fee_Waiver.pdf
+    skip undefined: true
+    valid formats:
+      - pdf
+    fields:
+      - Name: "${user.name}"       
+      - Street Address: "${user.address.street}"
+      - City: "${user.address.city}"
+      - State: "${user.address.state}"
+      - Zip: "${user.address.zip}"
+      - In Pro Per or Se: |
+         % if petitioner:
+           In Pro Per          
+         % else:
+           In Pro Se
+         % endif
+      - Court County: "${court_county}"
+      - Court Name: "${court_name}"
+      - Court Street Address: "${ courtstreetaddress_street }"
+      - Court City State and Zip: |
+         ${ courtstreetaddress_city }, CA ${courtstreetaddress_zip} 
+      - Date: "${}"
+      - previous fee waiver: "${prior_feewaiver}"
+      - Case Number: "${case_number}"
+      - previous fee waiver date: "${previous_feewaiver_date}"
+      - Case Name: |
+          % if petitioner:
+            ${user.name.last}, ${user.name.first} ${user.name.middle} v. ${otherparty.name.last}, ${otherparty.name.first} ${otherparty.name.middle}
+          % else:             
+            ${otherparty.name.last}, ${otherparty.name.first} ${otherparty.name.middle} v. ${user.name.last}, ${user.name.first} ${user.name.middle}
+          % endif
+      - Waive Additional Court Fees: "${}"
+      - Waive Court Fees: Yes
+      - Name 2: "${user.name}"
+      - Case Number 2: "${case_number}"
+      - Name 3: "${user.name}"
+      - Case Number 3: "${case_number}"
